@@ -12,7 +12,8 @@ date: "24/02/2020"
 output: html_document
 ---
 
-```{r setup}
+
+```r
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -26,18 +27,71 @@ The following packages are used:
 * hms
 * forcats
 
-```{r dependancies}
+
+```r
 library(data.table)
 library(tidyverse)
+```
+
+```
+## -- Attaching packages ------------------------------------------------------- tidyverse 1.3.0 --
+```
+
+```
+## v ggplot2 3.2.1     v purrr   0.3.3
+## v tibble  2.1.3     v dplyr   0.8.3
+## v tidyr   1.0.0     v stringr 1.4.0
+## v readr   1.3.1     v forcats 0.4.0
+```
+
+```
+## -- Conflicts ---------------------------------------------------------- tidyverse_conflicts() --
+## x dplyr::between()   masks data.table::between()
+## x dplyr::filter()    masks stats::filter()
+## x dplyr::first()     masks data.table::first()
+## x dplyr::lag()       masks stats::lag()
+## x dplyr::last()      masks data.table::last()
+## x purrr::transpose() masks data.table::transpose()
+```
+
+```r
 library(hms)
 library(lubridate)
+```
+
+```
+## 
+## Attaching package: 'lubridate'
+```
+
+```
+## The following object is masked from 'package:hms':
+## 
+##     hms
+```
+
+```
+## The following objects are masked from 'package:data.table':
+## 
+##     hour, isoweek, mday, minute, month, quarter, second, wday, week,
+##     yday, year
+```
+
+```
+## The following object is masked from 'package:base':
+## 
+##     date
+```
+
+```r
 library(forcats)
 options(lubridate.week.start = 1)
 ```
 
 ## Reading the data in
 
-```{r readdata}
+
+```r
 unzip("activity.zip")
 activity_raw <- fread("activity.csv")
 activity <- activity_raw %>%
@@ -58,7 +112,8 @@ activity <- activity_raw %>%
 ## Mean total number of steps per day
 For this section, we are ignoring missing values.
 
-```{r total_per_day}
+
+```r
 total_per_day <- activity %>%
   group_by(Date) %>%
   summarise(StepsPerDay = sum(Steps, na.rm = TRUE)) %>%
@@ -72,13 +127,14 @@ mean_per_day <- pull(summaries_per_day, MeanTotalPerDay)
 median_per_day <- pull(summaries_per_day, MedianTotalPerDay)
 ```
 
-The mean is `r round(mean_per_day,2)` steps per day and the median is `r median_per_day`
+The mean is 9354.23 steps per day and the median is 10395
 steps per day.
 
 ### Total steps per day 
 A histogram of the total steps per day follows.
 
-```{r histogram}
+
+```r
 ggplot(data = total_per_day, aes(StepsPerDay)) +
   geom_histogram(binwidth = 1000, 
                  boundary = 0, 
@@ -89,14 +145,16 @@ ggplot(data = total_per_day, aes(StepsPerDay)) +
   ggtitle("Histogram showing total steps per day") + 
   xlab("Steps per day") + 
   ylab("Frequency")
-  
 ```
+
+![](PA1_template_files/figure-html/histogram-1.png)<!-- -->
 
 ### Average daily activity pattern
 
 A time series plot showing the average daily activity pattern follows.
 
-```{r daily_pattern}
+
+```r
 daily_pattern <- activity %>%
   group_by(IntervalForPlot) %>%
   summarise(MeanStepsInInterval = mean(Steps, na.rm = TRUE)) %>%
@@ -113,30 +171,34 @@ ggplot(daily_pattern, aes(x = IntervalForPlot, y = MeanStepsInInterval)) +
   ylab("Average steps per 5-minute interval")
 ```
 
-On average, the most active 5-minute interval was that commencing at `r pull(max_interval, IntervalForPlot)` with a mean step count of `r pull(max_interval, MeanStepsInInterval)`.
+![](PA1_template_files/figure-html/daily_pattern-1.png)<!-- -->
+
+On average, the most active 5-minute interval was that commencing at 2020-02-24 08:35:00 with a mean step count of 206.1698113.
 
 
 ## Imputing missing values
 
 
-```{r count_na}
+
+```r
 count_na <- activity %>%
   filter(is.na(Steps)) %>%
   count() %>%
   pull(n)
 ```
 
-There are a total of **`r count_na`** missing values in the data, recorded as "NA". These may affect the accuracy of the previous calculations.
+There are a total of **2304** missing values in the data, recorded as "NA". These may affect the accuracy of the previous calculations.
 
 To remedy this, we have devised a strategy to impute the missing values by replacing them with the mean value for the given 5-minute interval across the dataset. 
 
-```{r impute_missing}
+
+```r
 activity_imp <- activity %>% 
   left_join(daily_pattern, "IntervalForPlot") %>%
   mutate(StepsImp = case_when(
     is.na(Steps) ~ MeanStepsInInterval,
     TRUE ~ as.double(Steps)))
-``` 
+```
 
 
 
@@ -144,7 +206,8 @@ activity_imp <- activity %>%
 
 Using this new data set, we have redrawn the histogram of steps per day and recalculated the measures of centrality.
 
-```{r recalculated_totals}
+
+```r
 total_per_day_imp <- activity_imp %>%
   group_by(Date) %>%
   summarise(StepsPerDayImp = sum(StepsImp)) %>%
@@ -160,7 +223,11 @@ ggplot(data = total_per_day_imp, aes(StepsPerDayImp)) +
   ggtitle("Histogram showing total steps per day") + 
   xlab("Steps per day (with imputed missing values)") + 
   ylab("Frequency")
+```
 
+![](PA1_template_files/figure-html/recalculated_totals-1.png)<!-- -->
+
+```r
 summaries_per_day_imp <- total_per_day_imp %>%
   summarise(MeanTotalPerDayImp = mean(StepsPerDayImp),
             MedianTotalPerDayImp = median(StepsPerDayImp))
@@ -172,8 +239,8 @@ median_per_day_imp <- pull(summaries_per_day_imp, MedianTotalPerDayImp)
 
 The recalculated measures of centrality are as follows:
 
-* mean: `r paste(round(mean_per_day_imp, 2))` steps per day (cf. pre-imputation `r round(mean_per_day, 2)`)
-* median: `r paste(round(median_per_day_imp, 2))` steps per day (cf. pre-imputation `r median_per_day`)
+* mean: 10766.19 steps per day (cf. pre-imputation 9354.23)
+* median: 10766.19 steps per day (cf. pre-imputation 10395)
 
 The effect of the imputation of missing values has been to all but remove 0-step days, thus bringing the mean and median values closer together (in fact, they are now identical as chance would have it). This is because we have introduced a number of forcibly average days into the data set.
 
@@ -181,7 +248,8 @@ The effect of the imputation of missing values has been to all but remove 0-step
 
 The below plot shows a comparison of the average daily step pattern on weekdays and weekends, using the data set with imputed missing values.
 
-```{r weekends}
+
+```r
 activity_we <- activity_imp %>%
   mutate(DayType = as_factor(case_when(
     wday(Date) < 6 ~ "Weekday",
@@ -200,3 +268,5 @@ ggplot(daily_pattern_we, aes(x = IntervalForPlot, y = MeanStepsInIntervalImp)) +
   ylab("Average steps per 5-minute interval") + 
   facet_grid(DayType ~ .)
 ```
+
+![](PA1_template_files/figure-html/weekends-1.png)<!-- -->
